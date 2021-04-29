@@ -2,13 +2,11 @@ import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.MinPQ;
 import edu.princeton.cs.algs4.StdOut;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 
 public class Solver {
     // define the search node by its definition
-    private class SearchNode implements Comparable<SearchNode>{
+    private class SearchNode implements Comparable<SearchNode> {
         Board       board;
         int         moves;
         int         priority;
@@ -22,20 +20,18 @@ public class Solver {
         }
 
         @Override
-        public int compareTo(SearchNode o) {
-            if (o == null) {
+        public int compareTo(SearchNode that) {
+            if (that == null) {
                 return 1;
             }
 
-            return priority - o.priority;
+            return priority - that.priority;
         }
     }
 
-    private Board board;
-    private MinPQ<SearchNode> pq = new MinPQ();
-    private MinPQ<SearchNode> twinPq = new MinPQ();
-    private LinkedList<Board> solutions = new LinkedList();
-    private boolean solved;
+    private final Board board;
+    private final LinkedList<Board> solutions = new LinkedList<>();
+    private final boolean solved;
     // find a solution to the initial board (using the A* algorithm)
     public Solver(Board initial) {
         if (initial == null) {
@@ -43,17 +39,17 @@ public class Solver {
         }
 
         board = initial;
-        var node = new SearchNode(board, 0, null);
-        var twinNode = new SearchNode(board.twin(), 0, null);
-        pq.insert(node);
-        twinPq.insert(twinNode);
-
         solved = search();
     }
 
     private boolean search() {
         var ret = false;
+        MinPQ<SearchNode> pq = new MinPQ<>(), twinPq = new MinPQ<>();
         SearchNode current;
+        var node = new SearchNode(board, 0, null);
+        var twinNode = new SearchNode(board.twin(), 0, null);
+        pq.insert(node);
+        twinPq.insert(twinNode);
 
         do {
             current = pq.delMin();
@@ -67,9 +63,9 @@ public class Solver {
 
             extend(current, pq);
             extend(twinCurrent, twinPq);
-        } while(!pq.isEmpty() && !twinPq.isEmpty());
+        } while (!pq.isEmpty() && !twinPq.isEmpty());
 
-        while(ret && current != null) {
+        while (ret && current != null) {
             solutions.addFirst(current.board);
             current = current.previous;
         }
@@ -102,7 +98,11 @@ public class Solver {
 
     // sequence of boards in a shortest solution; null if unsolvable
     public Iterable<Board> solution() {
-        return solutions;
+        if (solved) {
+            return solutions;
+        }
+
+        return null;
     }
 
     // test client (see below)

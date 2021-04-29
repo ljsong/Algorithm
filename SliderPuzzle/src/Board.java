@@ -1,14 +1,11 @@
-import edu.princeton.cs.algs4.StdOut;
-
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.NoSuchElementException;
 
 public class Board {
-    private int n = 0, blank_pos;
-    private int tiles[][];
+    private int n = 0;
+    private final int blankPos;
+    private int[][] tiles;
 
     private enum DIRECTION {
         INVALID(0),
@@ -40,6 +37,7 @@ public class Board {
     // create a board from an n-by-n array of tiles,
     // where tiles[row][col] = tile at (row, col)
     public Board(int[][] tiles) {
+        int zeroPos = -1;
         n = tiles.length;
         this.tiles = new int[tiles.length][];
 
@@ -50,16 +48,18 @@ public class Board {
             this.tiles[ix] = new int[tiles[ix].length];
             for (int jx = 0; jx < tiles[ix].length; ++jx) {
                 this.tiles[ix][jx] = tiles[ix][jx];
-                if(tiles[ix][jx] == 0) {
-                    blank_pos = ix * n + jx + 1;
+                if (tiles[ix][jx] == 0) {
+                    zeroPos = ix * n + jx + 1;
                 }
             }
         }
+
+        blankPos = zeroPos;
     }
 
     // string representation of this board
     public String toString() {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         sb.append(n + "\n");
         for (int ix = 0; ix < n; ++ix) {
             for (int jx = 0; jx < n; ++jx) {
@@ -78,16 +78,16 @@ public class Board {
 
     // number of tiles out of place
     public int hamming() {
-        int cnt_of_miss = 0;
+        int cntOfMiss = 0;
         for (int ix = 0; ix < n; ++ix) {
-            for(int jx = 0; jx < n; ++jx) {
+            for (int jx = 0; jx < n; ++jx) {
                 if (tiles[ix][jx] != 0 && tiles[ix][jx] != ix * n + jx + 1) {
-                    ++cnt_of_miss;
+                    ++cntOfMiss;
                 }
             }
         }
 
-        return cnt_of_miss;
+        return cntOfMiss;
     }
 
     // sum of Manhattan distances between tiles and goal
@@ -120,7 +120,7 @@ public class Board {
             return true;
         }
 
-        if (y == null || !(y instanceof Board)) {
+        if (y == null || !(y.getClass() == this.getClass())) {
             return false;
         }
 
@@ -130,7 +130,7 @@ public class Board {
         }
 
         for (int ix = 0; ix < n; ++ix) {
-            for(int jx = 0; jx < n; ++jx) {
+            for (int jx = 0; jx < n; ++jx) {
                 if (tiles[ix][jx] != that.tiles[ix][jx]) {
                     return false;
                 }
@@ -146,18 +146,17 @@ public class Board {
     }
 
     private class NeighborIterator implements Iterator<Board> {
-        // We will use the sequence: UP, LEFT, BOTTOM, RIGHT
-        private int ind = 0;
-        private int blank_row, blank_col;
-        private ArrayList<Board> neighbors = new ArrayList<>(4);
         private static final int MAX_STEPS = 4;
+        private int ind = 0;
+        private final int blankRow, blankCol;
+        private final ArrayList<Board> neighbors = new ArrayList<>(4);
 
         public NeighborIterator() {
-            blank_row = (blank_pos - 1) / n;
-            blank_col = (blank_pos - 1) % n;
+            blankRow = (blankPos - 1) / n;
+            blankCol = (blankPos - 1) % n;
 
             for (int steps = 1; steps <= MAX_STEPS; ++steps) {
-                Board b = twin(blank_row, blank_col, DIRECTION.getDirection(steps));
+                Board b = twin(blankRow, blankCol, DIRECTION.getDirection(steps));
                 if (b == null) {
                     continue;
                 }
@@ -173,7 +172,11 @@ public class Board {
 
         @Override
         public Board next() {
-            return neighbors.get(ind++);
+            if (hasNext()) {
+                return neighbors.get(ind++);
+            } else {
+                throw new NoSuchElementException("No more elements to fetch");
+            }
         }
     }
 
@@ -200,13 +203,24 @@ public class Board {
      *             4, up
      */
     private Board twin(int row, int col, DIRECTION direction) {
-        return switch(direction) {
-            case LEFT ->  col <= 0 ? null : nextBoard(row, col, direction);
-            case BOTTOM -> row >= n - 1 ? null : nextBoard(row, col, direction);
-            case RIGHT -> col >= n - 1 ? null : nextBoard(row, col, direction);
-            case UP -> row <= 0 ? null : nextBoard(row, col, direction);
-            case INVALID -> null;
-        };
+        Board b = null;
+        switch(direction) {
+            case LEFT:
+                b = col <= 0 ? null : nextBoard(row, col, direction);
+                break;
+            case BOTTOM:
+                b = row >= n - 1 ? null : nextBoard(row, col, direction);
+                break;
+            case RIGHT:
+                b = col >= n - 1 ? null : nextBoard(row, col, direction);
+                break;
+            case UP:
+                b = row <= 0 ? null : nextBoard(row, col, direction);
+                break;
+            default:
+        }
+
+        return b;
     }
 
     private Board nextBoard(int row, int col, DIRECTION direction) {
@@ -218,25 +232,35 @@ public class Board {
     }
 
     private void swap(int row, int col, DIRECTION direction) {
-        var new_row = switch(direction) {
-            case BOTTOM -> row + 1;
-            case UP -> row - 1;
-            default -> row;
-        };
-        var new_col = switch(direction) {
-            case LEFT -> col - 1;
-            case RIGHT -> col + 1;
-            default -> col;
-        };
+        var newRow = row;
+        switch(direction) {
+            case BOTTOM:
+                newRow = row + 1;
+                break;
+            case UP:
+                newRow = row - 1;
+                break;
+            default:
+        }
+        var newCol = col;
+        switch(direction) {
+            case LEFT:
+                newCol = col - 1;
+                break;
+            case RIGHT:
+                newCol = col + 1;
+                break;
+            default:
+        }
 
         var tmp = tiles[row][col];
-        tiles[row][col] = tiles[new_row][new_col];
-        tiles[new_row][new_col] = tmp;
+        tiles[row][col] = tiles[newRow][newCol];
+        tiles[newRow][newCol] = tmp;
     }
 
     // unit testing (not graded)
     public static void main(String[] args) {
-
+        // unit testing for board class
     }
 
 }
