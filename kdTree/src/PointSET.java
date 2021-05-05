@@ -45,6 +45,9 @@ public class PointSET {
     }
 
     public Iterable<Point2D> range(RectHV rect) {
+        if (rect == null) {
+            throw new IllegalArgumentException("rect can not be null reference!");
+        }
         return () -> new PointIterator(rect);
     }
 
@@ -54,11 +57,11 @@ public class PointSET {
         }
 
         Point2D nearest = null;
-        double maxDistance = Double.NEGATIVE_INFINITY;
+        double minDistance = Double.POSITIVE_INFINITY;
         for (var q: points) {
-            double eachDistance = q.distanceTo(p);
-            if (eachDistance > maxDistance) {
-                maxDistance = eachDistance;
+            double eachDistance = q.distanceSquaredTo(p);
+            if (eachDistance < minDistance) {
+                minDistance = eachDistance;
                 nearest = q;
             }
         }
@@ -92,7 +95,7 @@ public class PointSET {
     }
 
     public static void main(String[] args) {
-
+        // unit testing method
     }
 
 }
