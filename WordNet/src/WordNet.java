@@ -6,6 +6,7 @@ public class WordNet {
     private final ST<String, Integer> dict;
     private final Digraph wordGraph;
     private int cntOfNodes = 0;
+    private SAP sap;
 
     // constructor takes the name of the two input files
     public WordNet(String synsets, String hypernyms) {
@@ -42,6 +43,9 @@ public class WordNet {
                 wordGraph.addEdge(v, Integer.parseInt(items[ix]));
             }
         }
+        in.close();
+
+        sap = new SAP(wordGraph);
 
         //TODO(ljsong): handle the exception that word net is not a rooted DAG
     }
@@ -68,7 +72,9 @@ public class WordNet {
                     " or " + nounB + " is not in current word net.");
         }
 
-        return 0;
+        int v = 0; // find id for nounA
+        int w = 0; // find id for nounB
+        return sap.length(v, w);
     }
 
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
@@ -79,7 +85,11 @@ public class WordNet {
                     " or " + nounB + " is not in current word net.");
         }
 
-        return null;
+        int v = 0; // find id for nounA
+        int w = 0; // find id for nounB
+
+        int x = sap.ancestor(v, w);
+        return null;    // find noun for id x
     }
 
     // do unit testing of this class
