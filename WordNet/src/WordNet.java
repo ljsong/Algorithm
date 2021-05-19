@@ -2,10 +2,15 @@ import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.ST;
 
+import java.util.ArrayList;
+
 public class WordNet {
     private final ST<String, Integer> dict;
     private final Digraph wordGraph;
+    private static final String FIELD_SEP = ",";
+    private static final String WORD_SEP = " ";
     private int cntOfNodes = 0;
+    private boolean isRooted = false;
     private SAP sap;
 
     // constructor takes the name of the two input files
@@ -20,9 +25,9 @@ public class WordNet {
         while (in.hasNextLine()) {
             String line = in.readLine();
             // separate id, synsets, definition
-            String[] items = line.split(",");
+            String[] items = line.split(FIELD_SEP);
             // separate synonyms
-            String[] synonyms = items[1].split(" ");
+            String[] synonyms = items[1].split(WORD_SEP);
 
             int nodeId = Integer.parseInt(items[0]);
             for (var syn : synonyms) {
@@ -37,7 +42,14 @@ public class WordNet {
         in = new In(hypernyms);
         while(in.hasNextLine()) {
             String line = in.readLine();
-            String[] items = line.split(",");
+            String[] items = line.split(FIELD_SEP);
+
+            // ^\d+$ represents the root
+            if (items.length == 1) {
+                isRooted = true;
+                continue;
+            }
+
             int v = Integer.parseInt(items[0]);
             for (int ix = 1; ix < items.length; ++ix) {
                 wordGraph.addEdge(v, Integer.parseInt(items[ix]));
@@ -46,8 +58,6 @@ public class WordNet {
         in.close();
 
         sap = new SAP(wordGraph);
-
-        //TODO(ljsong): handle the exception that word net is not a rooted DAG
     }
 
     // returns all WordNet nouns
@@ -72,8 +82,9 @@ public class WordNet {
                     " or " + nounB + " is not in current word net.");
         }
 
-        int v = 0; // find id for nounA
-        int w = 0; // find id for nounB
+        int v = dict.get(nounA);
+        int w = dict.get(nounB);
+
         return sap.length(v, w);
     }
 
@@ -85,11 +96,20 @@ public class WordNet {
                     " or " + nounB + " is not in current word net.");
         }
 
-        int v = 0; // find id for nounA
-        int w = 0; // find id for nounB
+        int v = dict.get(nounA);
+        int w = dict.get(nounB);
 
         int x = sap.ancestor(v, w);
-        return null;    // find noun for id x
+
+        StringBuilder sb = new StringBuilder();
+        for (var key : nouns()) {
+            if (x == dict.get(key)) {
+                sb.append(key);
+                sb.append(WORD_SEP);
+            }
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        return sb.toString();    // find noun for id x
     }
 
     // do unit testing of this class
