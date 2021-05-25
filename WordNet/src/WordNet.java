@@ -6,10 +6,12 @@ import java.util.ArrayList;
 
 public class WordNet {
     private final ST<String, Integer> dict;
+    private final String[] keys;
     private final Digraph wordGraph;
     private static final String FIELD_SEP = ",";
     private static final String WORD_SEP = " ";
     private int cntOfNodes = 0;
+    private int root;
     private boolean isRooted = false;
     private SAP sap;
 
@@ -37,8 +39,17 @@ public class WordNet {
         }
         in.close();
 
-        wordGraph = new Digraph(cntOfNodes);
+        keys = new String[cntOfNodes];      // construct the reverse lookup
+        for (var name: dict.keys()) {
+            StringBuilder sb = new StringBuilder();
+            int nodeId = dict.get(name);
+            String prefix = keys[nodeId];
+            sb.append(prefix == null ? "" : " ");
+            sb.append(name);
+            keys[nodeId] = sb.toString();
+        }
 
+        wordGraph = new Digraph(cntOfNodes);
         in = new In(hypernyms);
         while(in.hasNextLine()) {
             String line = in.readLine();
@@ -47,6 +58,7 @@ public class WordNet {
             // ^\d+$ represents the root
             if (items.length == 1) {
                 isRooted = true;
+                root = Integer.parseInt(items[0]);
                 continue;
             }
 
@@ -101,15 +113,7 @@ public class WordNet {
 
         int x = sap.ancestor(v, w);
 
-        StringBuilder sb = new StringBuilder();
-        for (var key : nouns()) {
-            if (x == dict.get(key)) {
-                sb.append(key);
-                sb.append(WORD_SEP);
-            }
-        }
-        sb.deleteCharAt(sb.length() - 1);
-        return sb.toString();    // find noun for id x
+        return keys[x];
     }
 
     // do unit testing of this class
