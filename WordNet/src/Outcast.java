@@ -19,7 +19,7 @@ public class Outcast {
             for (var second : nouns) {
                 distance += wordNet.distance(first, second);
             }
-            StdOut.println("The distance of " + first + " is: " + distance);
+
             if (distance > maxDistance) {
                 maxDistance = distance;
                 outlier = first;

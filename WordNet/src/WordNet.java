@@ -1,11 +1,10 @@
+import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.ST;
 
-import java.util.ArrayList;
-
 public class WordNet {
-    private final ST<String, Integer> dict;
+    private final ST<String, Bag<Integer>> dict;
     private final String[] keys;
     private final Digraph wordGraph;
     private static final String FIELD_SEP = ",";
@@ -31,9 +30,14 @@ public class WordNet {
             // separate synonyms
             String[] synonyms = items[1].split(WORD_SEP);
 
+            /* for some nouns, they may have different meanings
+             * for example, peach can represent a fruit or a kind of color
+             */
             int nodeId = Integer.parseInt(items[0]);
             for (var syn : synonyms) {
-                dict.put(syn, nodeId);
+                Bag<Integer> item = dict.contains(syn) ? dict.get(syn) : new Bag<>();
+                item.add(nodeId);
+                dict.put(syn, item);
             }
             ++cntOfNodes;
         }
@@ -42,11 +46,12 @@ public class WordNet {
         keys = new String[cntOfNodes];      // construct the reverse lookup
         for (var name: dict.keys()) {
             StringBuilder sb = new StringBuilder();
-            int nodeId = dict.get(name);
-            String prefix = keys[nodeId];
-            sb.append(prefix == null ? "" : " ");
-            sb.append(name);
-            keys[nodeId] = sb.toString();
+            for (var nodeId : dict.get(name)) {
+                String prefix = keys[nodeId];
+                sb.append(prefix == null ? "" : " ");
+                sb.append(name);
+                keys[nodeId] = sb.toString();
+            }
         }
 
         wordGraph = new Digraph(cntOfNodes);
@@ -94,8 +99,8 @@ public class WordNet {
                     " or " + nounB + " is not in current word net.");
         }
 
-        int v = dict.get(nounA);
-        int w = dict.get(nounB);
+        Bag<Integer> v = dict.get(nounA);
+        Bag<Integer> w = dict.get(nounB);
 
         return sap.length(v, w);
     }
@@ -108,8 +113,8 @@ public class WordNet {
                     " or " + nounB + " is not in current word net.");
         }
 
-        int v = dict.get(nounA);
-        int w = dict.get(nounB);
+        Bag<Integer> v = dict.get(nounA);
+        Bag<Integer> w = dict.get(nounB);
 
         int x = sap.ancestor(v, w);
 
