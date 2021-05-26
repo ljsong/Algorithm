@@ -14,11 +14,19 @@ public class SAP {
             throw new IllegalArgumentException("Graph can't be null reference");
         }
 
-        graph = G;
+        graph = new Digraph(G.V());
+        for (int v = 0; v < G.V(); ++v) {
+            for (var w : G.adj(v)) {
+                graph.addEdge(v, w);
+            }
+        }
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
     public int length(int v, int w) {
+        validateVertex(v);
+        validateVertex(w);
+
         if (v == w) {
             return 0;
         }
@@ -44,6 +52,9 @@ public class SAP {
 
     // a common ancestor of v and w that participates in a shortest ancestral path; -1 if no such path
     public int ancestor(int v, int w) {
+        validateVertex(v);
+        validateVertex(w);
+
         if (v == w) {
             return v;
         }
@@ -94,9 +105,15 @@ public class SAP {
 
     // length of shortest ancestral path between any vertex in v and any vertex in w; -1 if no such path
     public int length(Iterable<Integer> v, Iterable<Integer> w) {
+        if (v == null || w == null) {
+            throw new IllegalArgumentException("collections of vertex can not be null");
+        }
+
         var minDistance = Integer.MAX_VALUE;
         for (var firstNode : v) {
+            validateVertex(firstNode);
             for (var secondNode : w) {
+                validateVertex(secondNode);
                 var pathLength = length(firstNode, secondNode);
                 minDistance = (pathLength != -1 && pathLength < minDistance)
                         ? pathLength : minDistance;
@@ -108,11 +125,17 @@ public class SAP {
 
     // a common ancestor that participates in shortest ancestral path; -1 if no such path
     public int ancestor(Iterable<Integer> v, Iterable<Integer> w) {
+        if (v == null || w == null) {
+            throw new IllegalArgumentException("collections of vertex can not be null");
+        }
+
         var minDistance = Integer.MAX_VALUE;
         int minFirst = -1, minSecond = -1;
 
         for (var firstNode : v) {
+            validateVertex(firstNode);
             for (var secondNode : w) {
+                validateVertex(secondNode);
                 var pathLength = length(firstNode, secondNode);
                 if (pathLength == -1) {
                     continue;
@@ -127,6 +150,15 @@ public class SAP {
         }
 
         return minDistance == Integer.MAX_VALUE ? -1 : ancestor(minFirst, minSecond);
+    }
+
+    private void validateVertex(Integer v) {
+        if (v == null) {
+            throw new IllegalArgumentException("vertex can not be null reference");
+        }
+
+        if (v < 0 || v >= graph.V())
+            throw new IllegalArgumentException("vertex " + v + " is not between 0 and " + (graph.V() - 1));
     }
 
     // do unit testing of this class
