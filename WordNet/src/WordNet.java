@@ -4,15 +4,12 @@ import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.ST;
 
 public class WordNet {
-    private final ST<String, Bag<Integer>> dict;
-    private final String[] keys;
-    private final Digraph wordGraph;
     private static final String FIELD_SEP = ",";
     private static final String WORD_SEP = " ";
-    private int cntOfNodes = 0;
-    private int root;
-    private boolean isRooted = false;
-    private SAP sap;
+
+    private final ST<String, Bag<Integer>> dict;
+    private final String[] keys;
+    private final SAP sap;
 
     // constructor takes the name of the two input files
     public WordNet(String synsets, String hypernyms) {
@@ -21,6 +18,8 @@ public class WordNet {
                     "Arguments for constructor can not be null");
         }
 
+        int cntOfNodes = 0;
+        boolean isRooted = false;
         dict = new ST<>();
         In in = new In(synsets);
         while (in.hasNextLine()) {
@@ -45,25 +44,26 @@ public class WordNet {
 
         keys = new String[cntOfNodes];      // construct the reverse lookup
         for (var name: dict.keys()) {
-            StringBuilder sb = new StringBuilder();
             for (var nodeId : dict.get(name)) {
-                String prefix = keys[nodeId];
-                sb.append(prefix == null ? "" : " ");
+                String val = keys[nodeId] == null ? "" : keys[nodeId];
+                String delim = keys[nodeId] == null ? "" : " ";
+
+                StringBuilder sb = new StringBuilder(val);
+                sb.append(delim);
                 sb.append(name);
                 keys[nodeId] = sb.toString();
             }
         }
 
-        wordGraph = new Digraph(cntOfNodes);
+        Digraph wordGraph = new Digraph(cntOfNodes);
         in = new In(hypernyms);
-        while(in.hasNextLine()) {
+        while (in.hasNextLine()) {
             String line = in.readLine();
             String[] items = line.split(FIELD_SEP);
 
             // ^\d+$ represents the root
             if (items.length == 1) {
                 isRooted = true;
-                root = Integer.parseInt(items[0]);
                 continue;
             }
 
@@ -73,6 +73,10 @@ public class WordNet {
             }
         }
         in.close();
+
+        if (!isRooted) {
+            throw new IllegalArgumentException("Current word net is not a rooted graph");
+        }
 
         sap = new SAP(wordGraph);
     }

@@ -89,7 +89,7 @@ public class SAP {
         marked[v] = true;
         paths.put(v, 0);    // the length of path to itself is 0
 
-        while(!queue.isEmpty()) {
+        while (!queue.isEmpty()) {
             var u = queue.dequeue();
             for (var w : graph.adj(u)) {
                 if (marked[w]) {
