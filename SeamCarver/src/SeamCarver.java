@@ -76,29 +76,64 @@ public class SeamCarver {
     public int[] findHorizontalSeam() {
         int[] seam = new int[width];
 
+        updateHorizontalSE();
         for (int ix = 0; ix < width; ++ix) {
             seam[ix] = minIndex(hse[ix]);
         }
+
+        return seam;
     }
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
         int[] seam = new int[height];
 
-        for (int ix = 0;)
+        updateVerticalSE();
+        for (int ix = 0; ix < height; ++ix) {
+            seam[ix] = minIndex(vse[ix]);
+        }
 
+        return seam;
     }
 
     // remove horizontal seam from current picture
     public void removeHorizontalSeam(int[] seam) {
         validateSeam(seam, width);
 
+        Picture elder = picture;
+        picture = new Picture(width, height - 1);
+        for (int ix = 0; ix < width; ++ix) {
+            for (int jx = 0, kx = 0; jx < height; ++jx) {
+                if (jx == seam[ix]) {
+                    continue;
+                } else {
+                    picture.set(ix, kx++, elder.get(ix, jx));
+                }
+            }
+        }
+
+        elder = null;
+        --height;
     }
 
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
         validateSeam(seam, height);
 
+        Picture elder = picture;
+        picture = new Picture(width - 1, height);
+        for (int ix = 0; ix < height; ++ix) {
+            for (int jx = 0, kx = 0; jx < width; ++jx) {
+                if (jx == seam[ix]) {
+                    continue;
+                } else {
+                    picture.set(kx++, ix, elder.get(jx, ix));
+                }
+            }
+        }
+
+        elder = null;
+        --width;
     }
 
     private int minIndex(double[] energy) {
