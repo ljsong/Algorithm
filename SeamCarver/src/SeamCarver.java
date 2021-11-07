@@ -1,21 +1,20 @@
-import edu.princeton.cs.algs4.In;
-import edu.princeton.cs.algs4.IndexMinPQ;
 import edu.princeton.cs.algs4.Picture;
 
 import java.awt.Color;
-import static java.lang.Math.sqrt;
+
+import java.lang.Math;
 
 public class SeamCarver {
+    private static final double BORDER_ENERGY = 1000.0;
+
     private Picture picture;
     private int width;
     private int height;
     // used to store gradient of each pixel
-    private double[][] gradients;
-    // used to store vertical shortest energy to the top pixel
+    private final double[][] gradients;
+    // used to store vertical shortest energy from current pixel to the top pixel
     private double[][] vse;
     private double[][] hse;
-
-    private static final double BORDER_ENERGY = 1000.0;
 
     // create a seam carver object based on the given picture
     public SeamCarver(Picture picture) {
@@ -26,27 +25,24 @@ public class SeamCarver {
         width = this.picture.width();
         height = this.picture.height();
 
-        gradients = new double[height][width];
+        // store by column vectors
+        gradients = new double[width][height];
         vse = new double[height][width];
-        hse = new double[height][width];
-        for (int ix = 0; ix < height; ++ix) {
-            for (int jx = 0; jx < width; ++jx) {
+        hse = new double[width][height];
+        for (int ix = 0; ix < width; ++ix) {
+            for (int jx = 0; jx < height; ++jx) {
                 gradients[ix][jx] = BORDER_ENERGY;
-                vse[ix][jx] = BORDER_ENERGY;
+                vse[jx][ix] = BORDER_ENERGY;
                 hse[ix][jx] = BORDER_ENERGY;
             }
         }
 
-        for (int ix = 1; ix < height - 1; ++ix) {
-            for (int jx = 1; jx < width - 1; ++jx) {
-                gradients[ix][jx] = dualGradient(ix, jx);
-            }
-        }
+        updateGradient(width, height);
     }
 
     // current picture
     public Picture picture() {
-        return this.picture;
+        return new Picture(picture);
     }
 
     // width of current picture
@@ -76,9 +72,20 @@ public class SeamCarver {
     public int[] findHorizontalSeam() {
         int[] seam = new int[width];
 
-        updateHorizontalSE();
-        for (int ix = 0; ix < width; ++ix) {
-            seam[ix] = minIndex(hse[ix]);
+        if (width > 1 && height > 1) {
+            updateHorizontalSE();
+        }
+        seam[width - 1] = minIndex(hse[width - 1]);
+
+        for (int ix = width - 2; ix >= 0; --ix) {
+            for (int jx = 0; jx < height; ++jx) {
+                double first = hse[ix + 1][seam[ix + 1]];
+                double second = hse[ix][jx] + gradients[ix + 1][seam[ix + 1]];
+                if (Math.abs(first - second) < 1e-5 && Math.abs(jx - seam[ix + 1]) <= 1) {
+                    seam[ix] = jx;
+                    break;
+                }
+            }
         }
 
         return seam;
@@ -88,9 +95,20 @@ public class SeamCarver {
     public int[] findVerticalSeam() {
         int[] seam = new int[height];
 
-        updateVerticalSE();
-        for (int ix = 0; ix < height; ++ix) {
-            seam[ix] = minIndex(vse[ix]);
+        if (width > 1 && height > 1) {
+            updateVerticalSE();
+        }
+        seam[height - 1] = minIndex(vse[height - 1]);
+
+        for (int ix = height - 2; ix >= 0; --ix) {
+            for (int jx = 0; jx < width; ++jx) {
+                double first = vse[ix + 1][seam[ix + 1]];
+                double second = vse[ix][jx] + gradients[seam[ix + 1]][ix + 1];
+                if (Math.abs(first - second) < 1e-5 && Math.abs(jx - seam[ix + 1]) <= 1) {
+                    seam[ix] = jx;
+                    break;
+                }
+            }
         }
 
         return seam;
@@ -98,7 +116,7 @@ public class SeamCarver {
 
     // remove horizontal seam from current picture
     public void removeHorizontalSeam(int[] seam) {
-        validateSeam(seam, width);
+        validateSeam(seam, width, height);
 
         Picture elder = picture;
         picture = new Picture(width, height - 1);
@@ -112,13 +130,13 @@ public class SeamCarver {
             }
         }
 
-        elder = null;
         --height;
+        updateGradient(width, height);
     }
 
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
-        validateSeam(seam, height);
+        validateSeam(seam, height, width);
 
         Picture elder = picture;
         picture = new Picture(width - 1, height);
@@ -132,8 +150,8 @@ public class SeamCarver {
             }
         }
 
-        elder = null;
         --width;
+        updateGradient(width, height);
     }
 
     private int minIndex(double[] energy) {
@@ -152,40 +170,65 @@ public class SeamCarver {
     // dynamic programming
     private void updateVerticalSE() {
         for (int ix = 1; ix < height; ++ix) {
-            for (int jx = 1; jx < width; ++jx) {
+            for (int jx = 0; jx < width; ++jx) {
                 // The digraph is acyclic, where there is a downward edge from pixel(x, y) to pixels
                 // (x - 1, y + 1), (x, y + 1) and (x + 1, y + 1)
-                vse[ix][jx] = min(vse[ix - 1][jx - 1], vse[ix][jx - 1], vse[ix + 1][jx - 1]) + gradients[ix][jx];
+                if (jx == 0) {
+                    vse[ix][jx] = min(vse[ix - 1][jx], vse[ix - 1][jx + 1]) + gradients[jx][ix];
+
+                } else if (jx == width - 1) {
+                    vse[ix][jx] = min(vse[ix - 1][jx], vse[ix - 1][jx - 1]) + gradients[jx][ix];
+                } else {
+                    vse[ix][jx] = min(vse[ix - 1][jx - 1], vse[ix - 1][jx], vse[ix - 1][jx + 1])
+                            + gradients[jx][ix];
+                }
             }
         }
     }
 
     private void updateHorizontalSE() {
         for (int ix = 1; ix < width; ++ix) {
-            for (int jx = 1; jx < height; ++jx) {
+            for (int jx = 0; jx < height; ++jx) {
                 // transposed graph, edge should be from (x, y) to (x + 1, y), (x + 1, y - 1), (x + 1, y + 1)
-                hse[ix][jx] = min(hse[ix - 1][jx - 1], hse[ix - 1][jx], hse[ix - 1][jx + 1]) + gradients[ix][jx];
+                if (jx == 0) {
+                    hse[ix][jx] = min(hse[ix - 1][jx], hse[ix - 1][jx + 1]) + gradients[ix][jx];
+                } else if (jx == height - 1) {
+                    hse[ix][jx] = min(hse[ix - 1][jx], hse[ix - 1][jx - 1]) + gradients[ix][jx];
+                } else {
+                    hse[ix][jx] = min(hse[ix - 1][jx - 1], hse[ix - 1][jx], hse[ix - 1][jx + 1])
+                            + gradients[ix][jx];
+                }
             }
         }
     }
 
+    private void updateGradient(int width, int height) {
+        for (int ix = 1; ix < width - 1; ++ix) {
+            for (int jx = 1; jx < height - 1; ++jx) {
+                gradients[ix][jx] = dualGradient(ix, jx);
+            }
+        }
+    }
+
+
+    private double min(double a, double b) { return Math.min(a, b); }
     private double min(double a, double b, double c) {
         return Math.min(a, Math.min(b, c));
     }
 
-    private void validateSeam(int[] seam, int boundary) {
+    private void validateSeam(int[] seam, int dimBoundary, int pixelRange) {
         if (seam == null) {
             throw new IllegalArgumentException("Seam array is a null pointer!");
         }
-        if (boundary <= 1) {
+        if (pixelRange <= 1) {
             throw new IllegalArgumentException("Width or height of picture is 1 thus can not be removed");
         }
-        if (seam.length != boundary) {
+        if (seam.length != dimBoundary) {
             throw new IllegalArgumentException("The length of seam array is not equal to width or height of picture!");
         }
 
         for (int ix = 0; ix < seam.length; ++ix) {
-            if (seam[ix] >= boundary) {
+            if (seam[ix] >= pixelRange) {
                 throw new IllegalArgumentException("Not a valid seam pixel which is out of boundary!");
             }
         }
@@ -204,7 +247,7 @@ public class SeamCarver {
         int x_gradient = gradient(picture.get(x -1 , y), picture.get(x + 1, y));
         int y_gradient = gradient(picture.get(x, y - 1), picture.get(x, y + 1));
 
-        return sqrt(x_gradient + y_gradient);
+        return Math.sqrt(x_gradient + y_gradient);
     }
 
     private int gradient(Color prev, Color next) {
@@ -217,6 +260,5 @@ public class SeamCarver {
 
     //  unit testing (optional)
     public static void main(String[] args) {
-
     }
 }
