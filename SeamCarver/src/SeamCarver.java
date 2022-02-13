@@ -2,8 +2,6 @@ import edu.princeton.cs.algs4.Picture;
 
 import java.awt.Color;
 
-import java.lang.Math;
-
 public class SeamCarver {
     private static final double BORDER_ENERGY = 1000.0;
 
@@ -75,7 +73,7 @@ public class SeamCarver {
         if (width > 1 && height > 1) {
             updateHorizontalSE();
         }
-        seam[width - 1] = minIndex(hse[width - 1]);
+        seam[width - 1] = minIndex(hse[width - 1], height);
 
         for (int ix = width - 2; ix >= 0; --ix) {
             for (int jx = 0; jx < height; ++jx) {
@@ -98,7 +96,7 @@ public class SeamCarver {
         if (width > 1 && height > 1) {
             updateVerticalSE();
         }
-        seam[height - 1] = minIndex(vse[height - 1]);
+        seam[height - 1] = minIndex(vse[height - 1], width);
 
         for (int ix = height - 2; ix >= 0; --ix) {
             for (int jx = 0; jx < width; ++jx) {
@@ -154,10 +152,10 @@ public class SeamCarver {
         updateGradient(width, height);
     }
 
-    private int minIndex(double[] energy) {
+    private int minIndex(double[] energy, int length) {
         double minimum = Double.POSITIVE_INFINITY;
         int index = -1;
-        for (int ix = 0; ix < energy.length; ++ix) {
+        for (int ix = 0; ix < length; ++ix) {
             if (energy[ix] < minimum) {
                 index = ix;
                 minimum = energy[ix];
@@ -202,14 +200,13 @@ public class SeamCarver {
         }
     }
 
-    private void updateGradient(int width, int height) {
-        for (int ix = 1; ix < width - 1; ++ix) {
-            for (int jx = 1; jx < height - 1; ++jx) {
+    private void updateGradient(int w, int h) {
+        for (int ix = 0; ix < w; ++ix) {
+            for (int jx = 0; jx < h; ++jx) {
                 gradients[ix][jx] = dualGradient(ix, jx);
             }
         }
     }
-
 
     private double min(double a, double b) { return Math.min(a, b); }
     private double min(double a, double b, double c) {
