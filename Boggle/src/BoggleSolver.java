@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Iterator;
 
 public class BoggleSolver {
     private final String[] dict;
@@ -19,7 +20,7 @@ public class BoggleSolver {
     //score table to get the score quickly
     private Map<Integer, Integer> scoreTable = new HashMap<>();
     // characters and its neighbors on board
-    private Map<Position, Map<Character, Position>> neighbors = new HashMap<>();
+    private Map<Position, Map<Character, Bag<Position>>> neighbors = new HashMap<>();
     // Initializes the data structure using the given array of strings as the dictionary.
     // (You can assume each word in the dictionary contains only the uppercase letters A through Z.)
     public BoggleSolver(String[] dictionary) {
@@ -50,29 +51,52 @@ public class BoggleSolver {
         return false;
     }
 
-    private boolean findPath(Position p, String word) {
-        int i = 0;
-        Position parent = null;
-        System.out.println(String.format("word = %s", word));
-        while(i < word.length() - 1) {
-            char next = word.charAt(i + 1);
-            System.out.println(p);
-            Map<Character, Position> chars = neighbors.get(p);
-            System.out.println(chars);
-            System.out.println(String.format("parent = %s, chars.get(next) = %s", parent, chars.get(next)));
-            System.out.println(String.format("%b", (parent == chars.get(next))));
-            if (chars.containsKey(next) && parent != chars.get(next)) {
-                parent = p;
-                p = chars.get(next);
-            } else {
-                return false;
-            }
-            ++i;
+    private boolean FindCharacter(int idx, Bag<Position> positions, String word, Set<Position> parents) {
+        if (positions == null) {
+            return false;
         }
 
-        return true;
+        if (idx == word.length() - 1) {
+            for(Position lastPosition : positions) {
+                if (!parents.contains(lastPosition)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        char next = word.charAt(idx + 1);
+        if (word.charAt(idx) == 'Q' && next == 'U' && idx + 2 < word.length()) {
+            next = word.charAt(idx + 2);
+        }
+        boolean ret = false;
+
+        for (Position pos : positions) {
+            Map<Character, Bag<Position>> chars = neighbors.get(pos);
+            if (!chars.containsKey(next)) {
+                // next character is not a neighbor of current character
+                continue;
+            }
+            if (parents.contains(pos)) {
+                // this position has been used
+                continue;
+            }
+
+            parents.add(pos);
+            Bag<Position> nextPositions = chars.get(next);
+            if (word.charAt(idx) == 'Q' && word.charAt(idx + 1) == 'U' && idx + 2 < word.length()) {
+                ret |= FindCharacter(idx + 2, nextPositions, word, parents);
+                parents.remove(pos);
+            } else {
+                ret |= FindCharacter(idx + 1, nextPositions, word, parents);
+                parents.remove(pos);
+            }
+        }
+
+        return ret;
     }
-    private boolean simulate(String word, BoggleBoard board) {
+
+    private boolean findWord(String word, BoggleBoard board) {
         if (word.length() <= 2) {
             return false;
         }
@@ -81,53 +105,61 @@ public class BoggleSolver {
             return false;
         }
 
+        Set<Position> parents = new HashSet<>();
         Bag<Position> positions = position.get(word.charAt(0));
-        for (Position p : positions) {
-            if (findPath(p, word)) {
-                return true;
-            }
+        return FindCharacter(0, positions, word, parents);
+    }
+
+    private void putCharPosition(BoggleBoard board, Map<Character, Bag<Position>> chars, int x, int y) {
+        char c = board.getLetter(x, y);
+        Bag<Position> positions = null;
+
+        if (chars.containsKey(c)) {
+            positions = chars.get(c);
+        } else {
+            positions = new Bag<>();
+            chars.put(c, positions);
         }
 
-        return false;
+        positions.add(new Position(x, y));
     }
 
     private void constructNeighbors(BoggleBoard board) {
         for (int i = 0; i < board.rows(); ++i) {
             for (int j = 0; j < board.cols(); ++j) {
                 Position p = new Position(i, j);
-                Map<Character, Position> chars = new HashMap<>();
+                Map<Character, Bag<Position>> chars = new HashMap<>();
 
                 if (i - 1 >= 0) {
                     if (j - 1 >= 0) {
-                        chars.put(board.getLetter(i - 1, j - 1), new Position(i - 1, j - 1));
+                        putCharPosition(board, chars, i - 1, j - 1);
                     }
                     if (j + 1 < board.cols()) {
-                        chars.put(board.getLetter(i - 1, j + 1), new Position(i - 1, j + 1));
+                        putCharPosition(board, chars, i - 1, j + 1);
                     }
-                    chars.put(board.getLetter(i - 1, j), new Position(i - 1, j));
+                    putCharPosition(board, chars, i - 1, j);
                 }
 
                 if (j - 1 >= 0) {
-                    chars.put(board.getLetter(i, j - 1), new Position(i , j - 1));
+                    putCharPosition(board, chars, i , j - 1);
                 }
                 if (j + 1 < board.cols()) {
-                    chars.put(board.getLetter(i, j + 1), new Position(i, j + 1));
+                    putCharPosition(board, chars, i, j + 1);
                 }
 
                 if (i + 1 < board.rows()) {
                     if (j - 1 >= 0) {
-                        chars.put(board.getLetter(i + 1, j - 1), new Position(i + 1, j - 1));
+                        putCharPosition(board, chars, i + 1, j - 1);
                     }
                     if (j + 1 < board.cols()) {
-                        chars.put(board.getLetter(i + 1, j + 1), new Position(i + 1, j + 1));
+                        putCharPosition(board, chars, i + 1, j + 1);
                     }
-                    chars.put(board.getLetter(i + 1, j), new Position(i + 1, j));
+                    putCharPosition(board, chars, i + 1, j);
                 }
 
                 neighbors.put(p, chars);
             }
         }
-        System.out.println(neighbors);
     }
 
     private void preprocess(BoggleBoard board) {
@@ -144,6 +176,9 @@ public class BoggleSolver {
                 v.add(p);
                 position.put(c, v);
                 validc.add(c);
+                if (c == 'Q') {
+                    validc.add('U');
+                }
             }
         }
 
@@ -152,16 +187,12 @@ public class BoggleSolver {
 
     // Returns the set of all valid words in the given Boggle board, as an Iterable.
     public Iterable<String> getAllValidWords(BoggleBoard board) {
-        long start = System.currentTimeMillis();
         preprocess(board);
         for (String word : dict) {
-            if (simulate(word, board)) {
+            if (findWord(word, board)) {
                 words.add(word);
             }
         }
-
-        long end = System.currentTimeMillis();
-        System.out.println("Cost time: " + (end - start) + "ms.");
 
         return words;
     }
@@ -265,7 +296,7 @@ public class BoggleSolver {
             }
 
             Position p = (Position) o;
-            return p.pair == this.pair;
+            return p.pair.equals(this.pair);
         }
 
         @Override
