@@ -6,31 +6,41 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Iterator;
 
 public class BoggleSolver {
-    private final String[] dict;
-
     // with this map, we can easily check some words with characters not appeared on board
-    private Map<String, Set<Character>> dictMap = new HashMap<>();
-    private Bag<String> words = new Bag<>();
-    private Map<Character, Bag<Position>> position = new HashMap<>();
+    private final Map<String, Set<Character>> dictMap = new HashMap<>();
+    private final Map<Character, Bag<Position>> position = new HashMap<>();
     // characters appeared on board
-    private Set<Character> validc = new HashSet<>();
-    //score table to get the score quickly
-    private Map<Integer, Integer> scoreTable = new HashMap<>();
+    private final Set<Character> validc = new HashSet<>();
+
+    private final Set<String> allWords = new HashSet<>();
+    // score table to get the score quickly
+    private final Map<Integer, Integer> scoreTable = new HashMap<>();
     // characters and its neighbors on board
-    private Map<Position, Map<Character, Bag<Position>>> neighbors = new HashMap<>();
+    private final Map<Position, Map<Character, Bag<Position>>> neighbors = new HashMap<>();
     // Initializes the data structure using the given array of strings as the dictionary.
     // (You can assume each word in the dictionary contains only the uppercase letters A through Z.)
     public BoggleSolver(String[] dictionary) {
-        dict = dictionary;
-        for (String word : dict) {
+        for (String word : dictionary) {
             Set<Character> set = new HashSet<>();
             for (int i = 0; i < word.length(); ++i) {
-                set.add(word.charAt(i));
+                char c = word.charAt(i);
+                if (c != 'Q') {
+                    set.add(c);
+                } else {
+                    // it is only valid when Q and U appear continuously
+                    if (i + 1 < word.length() && word.charAt(i + 1) == 'U') {
+                        set.add(c);
+                        ++i;        // skip U behind Q
+                    } else {
+                        set.clear();    // treat single Q as illegal character
+                        break;
+                    }
+                }
             }
             dictMap.put(word, set);
+            allWords.add(word);
         }
 
         scoreTable.put(3, 1);
@@ -41,23 +51,13 @@ public class BoggleSolver {
         scoreTable.put(8, 11);
     }
 
-    private boolean isNeighbor(char c, Bag<Character> neighbors) {
-        for (char item : neighbors) {
-            if (c == item) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean FindCharacter(int idx, Bag<Position> positions, String word, Set<Position> parents) {
+    private boolean findCharacter(int idx, Bag<Position> positions, String word, Set<Position> parents) {
         if (positions == null) {
             return false;
         }
 
         if (idx == word.length() - 1) {
-            for(Position lastPosition : positions) {
+            for (Position lastPosition : positions) {
                 if (!parents.contains(lastPosition)) {
                     return true;
                 }
@@ -66,9 +66,6 @@ public class BoggleSolver {
         }
 
         char next = word.charAt(idx + 1);
-        if (word.charAt(idx) == 'Q' && next == 'U' && idx + 2 < word.length()) {
-            next = word.charAt(idx + 2);
-        }
         boolean ret = false;
 
         for (Position pos : positions) {
@@ -84,13 +81,8 @@ public class BoggleSolver {
 
             parents.add(pos);
             Bag<Position> nextPositions = chars.get(next);
-            if (word.charAt(idx) == 'Q' && word.charAt(idx + 1) == 'U' && idx + 2 < word.length()) {
-                ret |= FindCharacter(idx + 2, nextPositions, word, parents);
-                parents.remove(pos);
-            } else {
-                ret |= FindCharacter(idx + 1, nextPositions, word, parents);
-                parents.remove(pos);
-            }
+            ret |= findCharacter(idx + 1, nextPositions, word, parents);
+            parents.remove(pos);
         }
 
         return ret;
@@ -101,13 +93,24 @@ public class BoggleSolver {
             return false;
         }
 
-        if (!validc.containsAll(dictMap.get(word))) {
+        Set<Character> chars = dictMap.get(word);
+        // empty chars represents there are some illegal character in this word
+        // such as Q due to Q must bind with U when it appears on board
+        if (chars.isEmpty() || !validc.containsAll(chars)) {
+            return false;
+        }
+
+        int totalChars = board.rows() * board.cols();
+        if (word.length() / 2 > totalChars) {
             return false;
         }
 
         Set<Position> parents = new HashSet<>();
         Bag<Position> positions = position.get(word.charAt(0));
-        return FindCharacter(0, positions, word, parents);
+        // here, we can guarantee that all Q has a U behind it
+        // so we replace QU with Q to make it conveniently process
+        String replacement = word.replaceAll("QU", "Q");
+        return findCharacter(0, positions, replacement, parents);
     }
 
     private void putCharPosition(BoggleBoard board, Map<Character, Bag<Position>> chars, int x, int y) {
@@ -141,7 +144,7 @@ public class BoggleSolver {
                 }
 
                 if (j - 1 >= 0) {
-                    putCharPosition(board, chars, i , j - 1);
+                    putCharPosition(board, chars, i, j - 1);
                 }
                 if (j + 1 < board.cols()) {
                     putCharPosition(board, chars, i, j + 1);
@@ -163,6 +166,10 @@ public class BoggleSolver {
     }
 
     private void preprocess(BoggleBoard board) {
+        neighbors.clear();
+        validc.clear();
+        position.clear();
+
         for (int i = 0; i < board.rows(); ++i) {
             for (int j = 0; j < board.cols(); ++j) {
                 char c = board.getLetter(i, j);
@@ -176,9 +183,6 @@ public class BoggleSolver {
                 v.add(p);
                 position.put(c, v);
                 validc.add(c);
-                if (c == 'Q') {
-                    validc.add('U');
-                }
             }
         }
 
@@ -187,19 +191,25 @@ public class BoggleSolver {
 
     // Returns the set of all valid words in the given Boggle board, as an Iterable.
     public Iterable<String> getAllValidWords(BoggleBoard board) {
+        Bag<String> validWords = new Bag<>();
+
         preprocess(board);
-        for (String word : dict) {
+        for (String word : allWords) {
             if (findWord(word, board)) {
-                words.add(word);
+                validWords.add(word);
             }
         }
 
-        return words;
+        return validWords;
     }
 
     // Returns the score of the given word if it is in the dictionary, zero otherwise.
     // (You can assume the word contains only the uppercase letters A through Z.)
     public int scoreOf(String word) {
+        if (!allWords.contains(word)) {
+            return 0;
+        }
+
         int len = word.length();
 
         if (len < 3) {
@@ -224,9 +234,9 @@ public class BoggleSolver {
         StdOut.println("Score = " + score);
     }
 
-    private class Pair<U, V>{
-        private U first;
-        private V second;
+    private class Pair<U, V> {
+        private final U first;
+        private final V second;
 
         public Pair(U x, V y) {
             first = x;
@@ -242,16 +252,16 @@ public class BoggleSolver {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) {
+        public boolean equals(Object obj) {
+            if (this == obj) {
                 return true;
             }
 
-            if (o == null || getClass() != o.getClass()) {
+            if (obj == null || getClass() != obj.getClass()) {
                 return false;
             }
 
-            Pair p = (Pair) o;
+            Pair p = (Pair) obj;
             if (first == p.first && second == p.second) {
                 return true;
             }
@@ -271,10 +281,10 @@ public class BoggleSolver {
     }
 
     private final class Position {
-        private Pair<Integer, Integer> pair;
+        private final Pair<Integer, Integer> pair;
 
         public Position(int x, int y) {
-            pair = new Pair(x, y);
+            pair = new Pair<>(x, y);
         }
 
         public int x() {
@@ -286,16 +296,16 @@ public class BoggleSolver {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (this == o) {
+        public boolean equals(Object obj) {
+            if (this == obj) {
                 return true;
             }
 
-            if (o == null || getClass() != o.getClass()) {
+            if (obj == null || getClass() != obj.getClass()) {
                 return false;
             }
 
-            Position p = (Position) o;
+            Position p = (Position) obj;
             return p.pair.equals(this.pair);
         }
 
