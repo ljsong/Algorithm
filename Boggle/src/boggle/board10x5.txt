@@ -1,0 +1,11 @@
+10 5
+F  S  I  O  H  
+T  S  O  W  S  
+S  I  E  T  P  
+R  T  O  I  E  
+E  R  N  O  S  
+L  T  T  P  H  
+Y  D  I  S  T  
+E  L  E  O  Y  
+N  Y  S  T  E  
+N  E  N  T  O

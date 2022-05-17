@@ -1,0 +1,4 @@
+3 3
+S  H  K
+F  T  P
+I  S  N
