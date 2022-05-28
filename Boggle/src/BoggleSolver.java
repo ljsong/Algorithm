@@ -1,21 +1,27 @@
 import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.In;
 import edu.princeton.cs.algs4.StdOut;
-import edu.princeton.cs.algs4.SET;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
 
 public class BoggleSolver {
     private final TrieST<Boolean> dictTrie = new TrieST<>();
     // score table to get the score quickly
     private final Map<Integer, Integer> scoreTable = new HashMap<>();
 
+    // there will be a compilation error when using Trie's contains function
+    private final Set<String> dictSet = new HashSet<>();
+
     // Initializes the data structure using the given array of strings as the dictionary.
     // (You can assume each word in the dictionary contains only the uppercase letters A through Z.)
     public BoggleSolver(String[] dictionary) {
         for (String word : dictionary) {
             dictTrie.put(word, Boolean.TRUE);
+            dictSet.add(word);
         }
 
         scoreTable.put(3, 1);
@@ -59,11 +65,8 @@ public class BoggleSolver {
         return positions;
     }
 
-    private void traverseBoard(BoggleBoard board, SET<String> validWords) {
-        boolean visited[][] = new boolean[board.rows()][];
-        for (int i = 0; i < board.rows(); ++i) {
-            visited[i] = new boolean[board.cols()];
-        }
+    private void traverseBoard(BoggleBoard board, Set<String> validWords) {
+        boolean visited[][] = new boolean[board.rows()][board.cols()];
 
         for (int row = 0; row < board.rows(); ++row) {
             for (int col = 0; col < board.cols(); ++col) {
@@ -74,7 +77,7 @@ public class BoggleSolver {
     }
 
     private void collect(BoggleBoard board, int row, int col, boolean[][] visited,
-                         SET<String> validWords, StringBuilder prefix) {
+                         Set<String> validWords, StringBuilder prefix) {
         if (visited[row][col]) return;
         visited[row][col] = true;
 
@@ -86,7 +89,7 @@ public class BoggleSolver {
 
         if (hasPrefix) {
             for (Position pos : getAdjacent(board, row, col)) {
-                if (str.length() >= 3 && dictTrie.contains(str)) {
+                if (str.length() >= 3 && dictSet.contains(str)) {
                     validWords.add(str);
                 }
                 collect(board, pos.x(), pos.y(), visited, validWords, prefix);
@@ -99,7 +102,7 @@ public class BoggleSolver {
 
     // Returns the set of all valid words in the given Boggle board, as an Iterable.
     public Iterable<String> getAllValidWords(BoggleBoard board) {
-        SET<String> validWords = new SET<>();
+        Set<String> validWords = new HashSet<>();
         traverseBoard(board, validWords);
 
         return validWords;
@@ -108,12 +111,11 @@ public class BoggleSolver {
     // Returns the score of the given word if it is in the dictionary, zero otherwise.
     // (You can assume the word contains only the uppercase letters A through Z.)
     public int scoreOf(String word) {
-        if (!dictTrie.contains(word)) {
+        if (!dictSet.contains(word)) {
             return 0;
         }
 
         int len = word.length();
-
         if (len < 3) {
             return 0;
         } else if (len > 8) {
@@ -136,47 +138,26 @@ public class BoggleSolver {
         StdOut.println("Score = " + score);
     }
 
-    private class Pair<U, V> {
-        private final U first;
-        private final V second;
-
-        public Pair(U x, V y) {
-            first = x;
-            second = y;
-        }
-
-        public final U first() {
-            return this.first;
-        }
-
-        public final V second() {
-            return this.second;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("(%d, %d)", first, second);
-        }
-    }
-
     private final class Position {
-        private final Pair<Integer, Integer> pair;
+        private final int x;
+        private final int y;
 
         public Position(int x, int y) {
-            pair = new Pair<>(x, y);
+            this.x = x;
+            this.y = y;
         }
 
         public int x() {
-            return pair.first();
+            return x;
         }
 
         public int y() {
-            return pair.second();
+            return y;
         }
 
         @Override
         public String toString() {
-            return String.format("%s", pair);
+            return String.format("(%d, %d)", x, y);
         }
     }
 }
