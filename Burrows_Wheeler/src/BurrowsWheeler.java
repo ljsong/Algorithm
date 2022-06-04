@@ -9,14 +9,12 @@ import java.util.Map;
 public class BurrowsWheeler {
     // apply Burrows-Wheeler transform,
     // reading from standard input and writing to standard output
+    private static final int MAX_CHARS_PER_LINE = 4096;
     public static void transform() {
         StringBuilder sb = new StringBuilder();
-        while(!BinaryStdIn.isEmpty()) {
-            char c = BinaryStdIn.readChar();
-            if (c == 0x0D || c == 0x0A) {
-                break;
-            }
-            sb.append(c);
+        while (!BinaryStdIn.isEmpty()) {
+            String line = BinaryStdIn.readString();
+            sb.append(line);
         }
 
         String content = sb.toString();
@@ -26,10 +24,16 @@ public class BurrowsWheeler {
                 BinaryStdOut.write(i);
             }
         }
+        StringBuilder result = new StringBuilder();
         for (int i = 0; i < cs.length(); ++i) {
             int pos = cs.index(i) == 0 ? cs.length() - 1 : (cs.index(i) - 1);
-            BinaryStdOut.write(content.charAt(pos));
+            result.append(content.charAt(pos));
+            if (result.length() >= MAX_CHARS_PER_LINE) {
+                BinaryStdOut.write(result.toString());
+                result.delete(0, result.length());
+            }
         }
+        BinaryStdOut.write(result.toString());
         BinaryStdOut.close();
     }
 
@@ -42,11 +46,9 @@ public class BurrowsWheeler {
         if (!BinaryStdIn.isEmpty()) {
             first = BinaryStdIn.readInt();
         }
-        while(!BinaryStdIn.isEmpty()) {
-            char c= BinaryStdIn.readChar();
-            if (c == 0x0A || c == 0x0D) {
-                break;
-            }
+
+        while (!BinaryStdIn.isEmpty()) {
+            char c = BinaryStdIn.readChar();
             sb.append(c);
         }
 
@@ -65,25 +67,36 @@ public class BurrowsWheeler {
                 pos.put(c, queue);
             }
 
-            queue.enqueue((char)i);
+            queue.enqueue((char) i);
         }
 
         for (int i = 0; i < chars.length; ++i) {
             next[i] = pos.get(chars[i]).dequeue();
         }
 
-        int i = first;
-        while(next[i] != first) {
-            BinaryStdOut.write(chars[i]);
-            i = next[i];
+        int count = 0;
+        StringBuilder result = new StringBuilder();
+        while (count < next.length) {
+            result.append(chars[first]);
+            if (result.length() >= MAX_CHARS_PER_LINE) {
+                BinaryStdOut.write(result.toString());
+                result.delete(0, result.length());
+            }
+            first = next[first];
+            ++count;
         }
-        BinaryStdOut.write(sb.charAt(first));
+        BinaryStdOut.write(result.toString());
+
         BinaryStdOut.close();
     }
 
     // if args[0] is "-", apply Burrows-Wheeler transform
     // if args[0] is "+", apply Burrows-Wheeler inverse transform
     public static void main(String[] args) {
-        BurrowsWheeler.inverseTransform();
+        if (args[0].equals("-")) {
+            BurrowsWheeler.transform();
+        } else if (args[0].equals("+")) {
+            BurrowsWheeler.inverseTransform();
+        }
     }
 }

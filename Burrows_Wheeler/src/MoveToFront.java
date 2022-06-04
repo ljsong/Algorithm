@@ -11,10 +11,10 @@ public class MoveToFront {
         Map<Character, Character> posMap = new HashMap<>();
         for (char i = 0; i < 256; ++i) {
             dict[i] = i;
-            posMap.put((char)i, i);
+            posMap.put(i, i);
         }
 
-        while(!BinaryStdIn.isEmpty()) {
+        while (!BinaryStdIn.isEmpty()) {
             char c = BinaryStdIn.readChar();
             char pos = posMap.get(c);
             for (char i = pos; i > 0; --i) {
@@ -22,7 +22,7 @@ public class MoveToFront {
                 posMap.put(dict[i], i);
             }
             dict[0] = c;
-            posMap.put(c, (char)0);
+            posMap.put(c, (char) 0);
             BinaryStdOut.write(pos);
         }
         BinaryStdOut.close();
@@ -37,7 +37,7 @@ public class MoveToFront {
             posMap.put(i, i);
         }
 
-        while(!BinaryStdIn.isEmpty()) {
+        while (!BinaryStdIn.isEmpty()) {
             char pos = BinaryStdIn.readChar();
             char c = dict[pos];
             for (char i = pos; i > 0; --i) {
@@ -45,7 +45,7 @@ public class MoveToFront {
                 posMap.put(dict[i], i);
             }
             dict[0] = c;
-            posMap.put(c, (char)0);
+            posMap.put(c, (char) 0);
             BinaryStdOut.write(c);
         }
 
@@ -55,7 +55,10 @@ public class MoveToFront {
     // if args[0] is "-", apply move-to-front encoding
     // if args[0] is "+", apply move-to-front decoding
     public static void main(String[] args) {
-        MoveToFront.encode();
-        MoveToFront.decode();
+        if (args[0].equals("-")) {
+            encode();
+        } else if (args[0].equals("+")) {
+            decode();
+        }
     }
 }
