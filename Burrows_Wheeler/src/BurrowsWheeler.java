@@ -2,7 +2,6 @@ import edu.princeton.cs.algs4.BinaryStdIn;
 import edu.princeton.cs.algs4.BinaryStdOut;
 import edu.princeton.cs.algs4.Queue;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,7 +55,8 @@ public class BurrowsWheeler {
         sb.getChars(0, sb.length(), chars, 0);
         int[] next = new int[chars.length];
         Map<Character, Queue<Integer>> pos = new HashMap<>();
-        Arrays.sort(chars);
+        sort(sb, chars);
+
 
         for (int i = 0; i < chars.length; ++i) {
             char c = sb.charAt(i);
@@ -88,6 +88,23 @@ public class BurrowsWheeler {
         }
         BinaryStdOut.write(result.toString());
         BinaryStdOut.close();
+    }
+
+    private static void sort(StringBuilder sb, char[] chars) {
+        int R = 256;
+        int[] count = new int[R + 1];
+
+        for (int i = 0; i < sb.length(); ++i) {
+            count[sb.charAt(i) + 1]++;
+        }
+
+        for (int r = 0; r < R; ++r) {
+            count[r + 1] += count[r];
+        }
+
+        for (int i = 0; i < sb.length(); ++i) {
+            chars[count[sb.charAt(i)]++] = sb.charAt(i);
+        }
     }
 
     // if args[0] is "-", apply Burrows-Wheeler transform
