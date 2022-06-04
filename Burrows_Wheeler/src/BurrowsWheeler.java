@@ -52,14 +52,15 @@ public class BurrowsWheeler {
             sb.append(c);
         }
 
-        char[] chars = sb.toString().toCharArray();
+        char[] chars = new char[sb.length()];
+        sb.getChars(0, sb.length(), chars, 0);
         int[] next = new int[chars.length];
-        Map<Character, Queue<Character>> pos = new HashMap<>();
+        Map<Character, Queue<Integer>> pos = new HashMap<>();
         Arrays.sort(chars);
 
         for (int i = 0; i < chars.length; ++i) {
             char c = sb.charAt(i);
-            Queue<Character> queue;
+            Queue<Integer> queue;
             if (pos.containsKey(c)) {
                 queue = pos.get(c);
             } else {
@@ -67,7 +68,7 @@ public class BurrowsWheeler {
                 pos.put(c, queue);
             }
 
-            queue.enqueue((char) i);
+            queue.enqueue(i);
         }
 
         for (int i = 0; i < chars.length; ++i) {
@@ -86,7 +87,6 @@ public class BurrowsWheeler {
             ++count;
         }
         BinaryStdOut.write(result.toString());
-
         BinaryStdOut.close();
     }
 

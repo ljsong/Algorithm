@@ -50,6 +50,10 @@ public class CircularSuffixArray {
     private void sort(int[] a, int lo, int hi, int d, int[] aux) {
 
         // cutoff to insertion sort for small subarrays
+        if (hi < lo || d >= str.length()) {
+            return;
+        }
+
         if (hi <= lo + CUTOFF) {
             insertion(a, lo, hi, d);
             return;
@@ -124,7 +128,7 @@ public class CircularSuffixArray {
 
     // unit testing (required)
     public static void main(String[] args) {
-        CircularSuffixArray csa = new CircularSuffixArray("ABRACADABRA!");
+        CircularSuffixArray csa = new CircularSuffixArray("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         System.out.println(csa.index(1));
     }
 }
