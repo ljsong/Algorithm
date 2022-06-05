@@ -1,14 +1,12 @@
 import edu.princeton.cs.algs4.BinaryStdIn;
 import edu.princeton.cs.algs4.BinaryStdOut;
-import edu.princeton.cs.algs4.Queue;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class BurrowsWheeler {
     // apply Burrows-Wheeler transform,
     // reading from standard input and writing to standard output
     private static final int MAX_CHARS_PER_LINE = 4096;
+
+    private static final int R = 256;
     public static void transform() {
         StringBuilder sb = new StringBuilder();
         while (!BinaryStdIn.isEmpty()) {
@@ -54,25 +52,18 @@ public class BurrowsWheeler {
         char[] chars = new char[sb.length()];
         sb.getChars(0, sb.length(), chars, 0);
         int[] next = new int[chars.length];
-        Map<Character, Queue<Integer>> pos = new HashMap<>();
-        sort(sb, chars);
-
-
-        for (int i = 0; i < chars.length; ++i) {
-            char c = sb.charAt(i);
-            Queue<Integer> queue;
-            if (pos.containsKey(c)) {
-                queue = pos.get(c);
-            } else {
-                queue = new Queue<>();
-                pos.put(c, queue);
-            }
-
-            queue.enqueue(i);
-        }
+        // pos is used to record the positions for character occurred in original string
+        // the point should be noticed is that for specific character, if it appears more
+        // than one time in original string, the positions will be stored in the second
+        // dimensional array as they appear in the result of `transform`
+        int[][] pos = new int[R][];
+        sort(sb, chars, pos);
 
         for (int i = 0; i < chars.length; ++i) {
-            next[i] = pos.get(chars[i]).dequeue();
+            int len = pos[chars[i]].length;
+            int idx = pos[chars[i]][0];
+            next[i] = pos[chars[i]][len - idx];
+            pos[chars[i]][0]--;
         }
 
         int count = 0;
@@ -90,12 +81,18 @@ public class BurrowsWheeler {
         BinaryStdOut.close();
     }
 
-    private static void sort(StringBuilder sb, char[] chars) {
-        int R = 256;
+    private static void sort(StringBuilder sb, char[] chars, int[][] pos) {
         int[] count = new int[R + 1];
 
         for (int i = 0; i < sb.length(); ++i) {
             count[sb.charAt(i) + 1]++;
+        }
+
+        for (int r = 0; r < R; ++r) {
+            if (count[r + 1] != 0) {
+                // the first element is used to indicate where we should put the incoming number
+                pos[r] = new int[count[r + 1] + 1];
+            }
         }
 
         for (int r = 0; r < R; ++r) {
@@ -104,6 +101,9 @@ public class BurrowsWheeler {
 
         for (int i = 0; i < sb.length(); ++i) {
             chars[count[sb.charAt(i)]++] = sb.charAt(i);
+            pos[sb.charAt(i)][0]++;
+            int idx = pos[sb.charAt(i)][0];
+            pos[sb.charAt(i)][idx] = i;
         }
     }
 
